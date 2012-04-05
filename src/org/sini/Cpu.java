@@ -168,7 +168,9 @@ public final class Cpu {
 
                     case OP_IFE:
                         if(aValue.v != bValue) {
-                            r[PC].v++;
+                            op = m[r[PC].v++].v;
+                            getValue(op >>> 4 & 0x3F);
+                            getValue(op >>> 10 & 0x3F);
                             r[C].v++;
                         }
                         r[C].v += 2;
@@ -176,7 +178,9 @@ public final class Cpu {
 
                     case OP_IFN:
                         if(aValue.v == bValue) {
-                            r[PC].v++;
+                            op = m[r[PC].v++].v;
+                            getValue(op >>> 4 & 0x3F);
+                            getValue(op >>> 10 & 0x3F);
                             r[C].v++;
                         }
                         r[C].v += 2;
@@ -184,7 +188,9 @@ public final class Cpu {
 
                     case OP_IFG:
                         if(aValue.v <= bValue) {
-                            r[PC].v++;
+                            op = m[r[PC].v++].v;
+                            getValue(op >>> 4 & 0x3F);
+                            getValue(op >>> 10 & 0x3F);
                             r[C].v++;
                         }
                         r[C].v += 2;
@@ -192,7 +198,10 @@ public final class Cpu {
 
                      case OP_IFB:
                         if((aValue.v & bValue) == 0) {
-                            r[PC].v++;
+                            op = m[r[PC].v++].v;
+                            getValue(op >>> 4 & 0x3F);
+                            getValue(op >>> 10 & 0x3F);
+                            r[C].v++;
                         }
                         r[C].v += 2;
                         break;
@@ -337,7 +346,11 @@ public final class Cpu {
      * @param args The command line arguments.
      */
     public static void main(String[] args) {
-        int[] instructions = new int[] { 0x7c01, 0x0030, 0x7de1, 0x1000, 0x0020, 0x7803, 0x1000, 0xc00d };
+        int[] instructions = new int[] { 0x7c01, 0x0030, 0x7de1, 0x1000, 0x0020, 0x7803, 0x1000, 0xc00d,
+                                         0x7dc1, 0x001a, 0xa861, 0x7c01, 0x2000, 0x2161, 0x2000, 0x8463,
+                                         0x806d, 0x7dc1, 0x000d, 0x9031, 0x7c10, 0x0018, 0x7dc1, 0x001a,
+                                         0x9037, 0x61c1, 0x7dc1, 0x001a, 0x0000, 0x0000, 0x0000, 0x0000
+                                       };
         Cpu cpu = new Cpu();
         cpu.execute(instructions);
     }
