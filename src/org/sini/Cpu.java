@@ -4,7 +4,7 @@ import static org.sini.Ops.*;
 
 /**
  * Cpu.java
- * @version 1.0.0
+ * @version 1.0.1
  */
 public final class Cpu {
     
@@ -35,6 +35,11 @@ public final class Cpu {
     private static final int O = 10;
     
     /**
+     * The cycle index in the registers array.
+     */
+    private static final int C = 11;
+    
+    /**
      * The local memory of this {@link Cpu}.
      */
     Cell[] m;
@@ -49,7 +54,11 @@ public final class Cpu {
      */
     public void initialize() {
         m = new Cell[AMOUNT_MEMORY];
-        r = new Cell[AMOUNT_REGISTERS + 3];    
+        for(int i = 0; i < m.length; i++)
+            m[i] = new Cell();
+        r = new Cell[AMOUNT_REGISTERS + 4];   
+        for(int i = 0; i < m.length; i++)
+            r[i] = new Cell();
         r[SP].v = 0xFFFF;
     }
     
@@ -67,24 +76,110 @@ public final class Cpu {
      */
     public void execute() {
         int op = m[r[PC].v++].v;
-        switch(op & 0xF) {
-            
-            case 0x0:
-                op >>= 4;               
-                switch(op & 0x3F) {
+        if((op & 0xF) != 0) {
+            Object a = getValue(op >>> 4 & 0x3F);
+            if(!(a instanceof Cell))
+                throw new RuntimeException();
+            Cell aValue = (Cell) a;
+            Object b = getValue(op >>> 10 & 0x3F);
+            int bValue = b instanceof Cell ? ((Cell) b).v : (Integer) b;
+            switch(op & 0xF) {
+
+                case OP_SET:                   
+                    ((Cell) a).v = bValue;
+                    break;
+
+                case OP_ADD:                
+                    int value = aValue.v + bValue;
+                    if(value > 0xFFFF) {
+                        r[O].v = 0x0001;
+                        value &= 0xFFFF;
+                    }
+                    aValue.v = value;
+                    break;
                     
-                    case 0:
-                        return;
-                }
-                break;
-            
-            case OP_SET:
-                
-                break;
-                
-            case OP_ADD:
-                
-                break;
+                case OP_SUB:
+                    value = aValue.v - bValue;
+                    if(value < 0) {
+                        r[O].v = 0xFFFF;
+                        value &= 0xFFFF;
+                    }
+                    aValue.v = value;
+                    break;
+                    
+                case OP_MUL:
+                    value = aValue.v * bValue;
+                    aValue.v = value & 0xFFFF;
+                    r[O].v = value >>> 16;
+                    break;
+                    
+                case OP_DIV:
+                    if(bValue == 0) {
+                        aValue.v = 0;
+                        r[O].v = 0;
+                    } else {
+                        aValue.v = aValue.v/bValue & 0xFFFF;
+                        r[O].v = (aValue.v << 16)/bValue & 0xFFFF;
+                    }
+                    break;
+                    
+                case OP_MOD:
+                    if(bValue == 0) {
+                        aValue.v = 0;
+                    } else
+                        aValue.v = aValue.v % bValue;
+                    break;
+                    
+                case OP_SHL:
+                    value = aValue.v << bValue;
+                    r[O].v = value >>> 16;
+                    aValue.v = value & 0xFFFF;
+                    break;
+                    
+                case OP_SHR:
+                    aValue.v = aValue.v >>> bValue & 0xFFFF;
+                    r[O].v = aValue.v << 16 >>> bValue & 0xFFFF;
+                    break;
+                    
+                case OP_AND:
+                    aValue.v &= bValue;
+                    break;
+                    
+                case OP_OR:
+                    aValue.v |= bValue;
+                    break;
+                    
+                case OP_XOR:
+                    aValue.v ^= bValue;
+                    break;
+                    
+                case OP_IFE:
+                    if(aValue.v != bValue)
+                        r[PC].v++;
+                    break;
+                    
+                case OP_IFN:
+                    if(aValue.v == bValue)
+                        r[PC].v++;
+                    break;
+                    
+                case OP_IFG:
+                    if(aValue.v <= bValue)
+                        r[PC].v++;
+                    break;
+                    
+                 case OP_IFB:
+                    if((aValue.v & bValue) == 0)
+                        r[PC].v++;
+                    break;
+            }
+        } else {
+            op >>>= 4;
+            switch(op & 0x3F) {
+
+                case 0:
+                    return;
+            }
         }
     }
     
