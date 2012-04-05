@@ -89,6 +89,7 @@ public final class Cpu {
 
                     case OP_SET:                   
                         ((Cell) a).v = bValue;
+                        r[C].v++;
                         break;
 
                     case OP_ADD:                
@@ -98,6 +99,7 @@ public final class Cpu {
                             value &= 0xFFFF;
                         }
                         aValue.v = value;
+                        r[C].v += 2;
                         break;
 
                     case OP_SUB:
@@ -107,12 +109,14 @@ public final class Cpu {
                             value &= 0xFFFF;
                         }
                         aValue.v = value;
+                        r[C].v += 2;
                         break;
 
                     case OP_MUL:
                         value = aValue.v * bValue;
                         aValue.v = value & 0xFFFF;
                         r[O].v = value >>> 16;
+                        r[C].v += 2;
                         break;
 
                     case OP_DIV:
@@ -123,6 +127,7 @@ public final class Cpu {
                             aValue.v = aValue.v/bValue & 0xFFFF;
                             r[O].v = (aValue.v << 16)/bValue & 0xFFFF;
                         }
+                        r[C].v += 3;
                         break;
 
                     case OP_MOD:
@@ -130,49 +135,66 @@ public final class Cpu {
                             aValue.v = 0;
                         } else
                             aValue.v = aValue.v % bValue;
+                        r[C].v += 3;
                         break;
 
                     case OP_SHL:
                         value = aValue.v << bValue;
                         r[O].v = value >>> 16;
                         aValue.v = value & 0xFFFF;
+                        r[C].v += 2;
                         break;
 
                     case OP_SHR:
                         aValue.v = aValue.v >>> bValue & 0xFFFF;
                         r[O].v = aValue.v << 16 >>> bValue & 0xFFFF;
+                        r[C].v += 2;
                         break;
 
                     case OP_AND:
                         aValue.v &= bValue;
+                        r[C].v++;
                         break;
 
                     case OP_OR:
                         aValue.v |= bValue;
+                        r[C].v++;
                         break;
 
                     case OP_XOR:
                         aValue.v ^= bValue;
+                        r[C].v++;
                         break;
 
                     case OP_IFE:
-                        if(aValue.v != bValue)
+                        if(aValue.v != bValue) {
                             r[PC].v++;
+                            r[C].v++;
+                        }
+                        r[C].v += 2;
                         break;
 
                     case OP_IFN:
-                        if(aValue.v == bValue)
+                        if(aValue.v == bValue) {
                             r[PC].v++;
+                            r[C].v++;
+                        }
+                        r[C].v += 2;
                         break;
 
                     case OP_IFG:
-                        if(aValue.v <= bValue)
+                        if(aValue.v <= bValue) {
                             r[PC].v++;
+                            r[C].v++;
+                        }
+                        r[C].v += 2;
                         break;
 
                      case OP_IFB:
-                        if((aValue.v & bValue) == 0)
+                        if((aValue.v & bValue) == 0) {
                             r[PC].v++;
+                        }
+                        r[C].v += 2;
                         break;
                 }
             } else {
@@ -185,9 +207,10 @@ public final class Cpu {
                         return;
                         
                     case OP_JSR:
-                        Cell cell = (Cell) getValue(0x1A);
+                        Cell cell = m[--r[SP].v];
                         cell.v = r[PC].v;
                         r[PC].v = aValue;
+                        r[C].v += 2;
                         break;
                 }
             }
@@ -230,6 +253,7 @@ public final class Cpu {
             case 0x15:
             case 0x16:
             case 0x17:
+                r[C].v ++;
                 return m[r[op - 0x10].v + m[r[PC].v++].v];
                 
             case 0x18:
@@ -251,9 +275,11 @@ public final class Cpu {
                 return r[O];
                 
             case 0x1E:
+                r[C].v ++;
                 return m[m[r[PC].v++].v];
                 
             case 0x1F:
+                r[C].v ++;
                 return m[r[PC].v++];
                 
             case 0x20:

@@ -1,0 +1,7 @@
+nbproject/
+dist/
+build/
+build.xml
+
+# Ignore compiler output
+bin/build
