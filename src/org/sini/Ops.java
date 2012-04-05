@@ -82,4 +82,8 @@ public final class Ops {
      */
     public final static int OP_IFB = 0xF;
     
+    /**
+     * Preforms a jump to a sub routine.
+     */
+    public final static int OP_JSR = 0x01;
 }

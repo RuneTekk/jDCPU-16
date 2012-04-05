@@ -178,10 +178,17 @@ public final class Cpu {
             } else {
                 op >>>= 4;
                 Object a = getValue(op >>> 6);
+                int aValue = a instanceof Cell ? ((Cell) a).v : (Integer) a;
                 switch(op & 0x3F) {
 
                     case 0:
                         return;
+                        
+                    case OP_JSR:
+                        Cell cell = (Cell) getValue(0x1A);
+                        cell.v = r[PC].v;
+                        r[PC].v = aValue;
+                        break;
                 }
             }
         }
