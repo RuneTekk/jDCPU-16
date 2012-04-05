@@ -57,7 +57,7 @@ public final class Cpu {
         for(int i = 0; i < m.length; i++)
             m[i] = new Cell();
         r = new Cell[AMOUNT_REGISTERS + 4];   
-        for(int i = 0; i < m.length; i++)
+        for(int i = 0; i < r.length; i++)
             r[i] = new Cell();
         r[SP].v = 0xFFFF;
     }
@@ -75,110 +75,114 @@ public final class Cpu {
      * Executes the currently mounted program.
      */
     public void execute() {
-        int op = m[r[PC].v++].v;
-        if((op & 0xF) != 0) {
-            Object a = getValue(op >>> 4 & 0x3F);
-            if(!(a instanceof Cell))
-                throw new RuntimeException();
-            Cell aValue = (Cell) a;
-            Object b = getValue(op >>> 10 & 0x3F);
-            int bValue = b instanceof Cell ? ((Cell) b).v : (Integer) b;
-            switch(op & 0xF) {
+        r[PC].v = 0;
+        while(true) {
+            int op = m[r[PC].v++].v;
+            if((op & 0xF) != 0) {
+                Object a = getValue(op >>> 4 & 0x3F);
+                if(!(a instanceof Cell))
+                    throw new RuntimeException();
+                Cell aValue = (Cell) a;
+                Object b = getValue(op >>> 10 & 0x3F);
+                int bValue = b instanceof Cell ? ((Cell) b).v : (Integer) b;
+                switch(op & 0xF) {
 
-                case OP_SET:                   
-                    ((Cell) a).v = bValue;
-                    break;
+                    case OP_SET:                   
+                        ((Cell) a).v = bValue;
+                        break;
 
-                case OP_ADD:                
-                    int value = aValue.v + bValue;
-                    if(value > 0xFFFF) {
-                        r[O].v = 0x0001;
-                        value &= 0xFFFF;
-                    }
-                    aValue.v = value;
-                    break;
-                    
-                case OP_SUB:
-                    value = aValue.v - bValue;
-                    if(value < 0) {
-                        r[O].v = 0xFFFF;
-                        value &= 0xFFFF;
-                    }
-                    aValue.v = value;
-                    break;
-                    
-                case OP_MUL:
-                    value = aValue.v * bValue;
-                    aValue.v = value & 0xFFFF;
-                    r[O].v = value >>> 16;
-                    break;
-                    
-                case OP_DIV:
-                    if(bValue == 0) {
-                        aValue.v = 0;
-                        r[O].v = 0;
-                    } else {
-                        aValue.v = aValue.v/bValue & 0xFFFF;
-                        r[O].v = (aValue.v << 16)/bValue & 0xFFFF;
-                    }
-                    break;
-                    
-                case OP_MOD:
-                    if(bValue == 0) {
-                        aValue.v = 0;
-                    } else
-                        aValue.v = aValue.v % bValue;
-                    break;
-                    
-                case OP_SHL:
-                    value = aValue.v << bValue;
-                    r[O].v = value >>> 16;
-                    aValue.v = value & 0xFFFF;
-                    break;
-                    
-                case OP_SHR:
-                    aValue.v = aValue.v >>> bValue & 0xFFFF;
-                    r[O].v = aValue.v << 16 >>> bValue & 0xFFFF;
-                    break;
-                    
-                case OP_AND:
-                    aValue.v &= bValue;
-                    break;
-                    
-                case OP_OR:
-                    aValue.v |= bValue;
-                    break;
-                    
-                case OP_XOR:
-                    aValue.v ^= bValue;
-                    break;
-                    
-                case OP_IFE:
-                    if(aValue.v != bValue)
-                        r[PC].v++;
-                    break;
-                    
-                case OP_IFN:
-                    if(aValue.v == bValue)
-                        r[PC].v++;
-                    break;
-                    
-                case OP_IFG:
-                    if(aValue.v <= bValue)
-                        r[PC].v++;
-                    break;
-                    
-                 case OP_IFB:
-                    if((aValue.v & bValue) == 0)
-                        r[PC].v++;
-                    break;
-            }
-        } else {
-            op >>>= 4;
-            switch(op & 0x3F) {
+                    case OP_ADD:                
+                        int value = aValue.v + bValue;
+                        if(value > 0xFFFF) {
+                            r[O].v = 0x0001;
+                            value &= 0xFFFF;
+                        }
+                        aValue.v = value;
+                        break;
 
-                case 0:
-                    return;
+                    case OP_SUB:
+                        value = aValue.v - bValue;
+                        if(value < 0) {
+                            r[O].v = 0xFFFF;
+                            value &= 0xFFFF;
+                        }
+                        aValue.v = value;
+                        break;
+
+                    case OP_MUL:
+                        value = aValue.v * bValue;
+                        aValue.v = value & 0xFFFF;
+                        r[O].v = value >>> 16;
+                        break;
+
+                    case OP_DIV:
+                        if(bValue == 0) {
+                            aValue.v = 0;
+                            r[O].v = 0;
+                        } else {
+                            aValue.v = aValue.v/bValue & 0xFFFF;
+                            r[O].v = (aValue.v << 16)/bValue & 0xFFFF;
+                        }
+                        break;
+
+                    case OP_MOD:
+                        if(bValue == 0) {
+                            aValue.v = 0;
+                        } else
+                            aValue.v = aValue.v % bValue;
+                        break;
+
+                    case OP_SHL:
+                        value = aValue.v << bValue;
+                        r[O].v = value >>> 16;
+                        aValue.v = value & 0xFFFF;
+                        break;
+
+                    case OP_SHR:
+                        aValue.v = aValue.v >>> bValue & 0xFFFF;
+                        r[O].v = aValue.v << 16 >>> bValue & 0xFFFF;
+                        break;
+
+                    case OP_AND:
+                        aValue.v &= bValue;
+                        break;
+
+                    case OP_OR:
+                        aValue.v |= bValue;
+                        break;
+
+                    case OP_XOR:
+                        aValue.v ^= bValue;
+                        break;
+
+                    case OP_IFE:
+                        if(aValue.v != bValue)
+                            r[PC].v++;
+                        break;
+
+                    case OP_IFN:
+                        if(aValue.v == bValue)
+                            r[PC].v++;
+                        break;
+
+                    case OP_IFG:
+                        if(aValue.v <= bValue)
+                            r[PC].v++;
+                        break;
+
+                     case OP_IFB:
+                        if((aValue.v & bValue) == 0)
+                            r[PC].v++;
+                        break;
+                }
+            } else {
+                op >>>= 4;
+                Object a = getValue(op >>> 6);
+                switch(op & 0x3F) {
+
+                    case 0:
+                        return;
+                }
             }
         }
     }
@@ -286,12 +290,22 @@ public final class Cpu {
     }
     
     /**
-     * Mount the memory of a program onto the memory of the Cpu.
+     * Mount the memory of a program onto the memory of the {@link Cpu}.
      * @param memory The short array that represents the memory of the program.
      */
     public void mount(int[] memory) {
         initialize();
         for(int i = 0; i < memory.length; i++) 
             m[i].v = memory[i];
+    }
+    
+    /**
+     * The main entry point for this program.
+     * @param args The command line arguments.
+     */
+    public static void main(String[] args) {
+        int[] instructions = new int[] { 0x7c01, 0x0030, 0x7de1, 0x1000, 0x0020, 0x7803, 0x1000, 0xc00d };
+        Cpu cpu = new Cpu();
+        cpu.execute(instructions);
     }
 }
