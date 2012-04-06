@@ -14,6 +14,11 @@ public final class Cpu {
     private static final int AMOUNT_MEMORY = 0x10000;
     
     /**
+     * The starting index in the memory array of video ram.
+     */
+    private static final int VIDEO_RAM = 0x8000;
+    
+    /**
      * As of DCPU-16 Version 1.1 the amount of registers is 8; they are
      * (A, B, C, X, Y, Z, I, and J in that order)
      */
@@ -352,6 +357,11 @@ public final class Cpu {
                                          0x9037, 0x61c1, 0x7dc1, 0x001a, 0x0000, 0x0000, 0x0000, 0x0000
                                        };
         Cpu cpu = new Cpu();
-        cpu.execute(instructions);
+        //cpu.execute(instructions);
+        Asm asm = new Asm();
+        asm.assemble(";hello\n"
+                   + ":hello\n"
+                   + "set CP, [0xffff] \n"
+                   + "");
     }
 }
