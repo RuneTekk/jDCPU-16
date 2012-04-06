@@ -92,7 +92,7 @@ public final class Cpu {
                     b = temp;
                 }   
                 if(!(a instanceof Cell))
-                    throw new RuntimeException("Invalid instruction");
+                    continue;
                 Cell aValue = (Cell) a;
                 int bValue = b instanceof Cell ? ((Cell) b).v : (Integer) b;
                 switch(op & 0xF) {
@@ -356,7 +356,7 @@ public final class Cpu {
      * @param args The command line arguments.
      */
     public static void main(String[] args) {
-         int[] instructions = new int[] { 0x8401 };
+        int[] instructions = new int[] { 0x6da1, 0x65e1 , 0x1001 };
 
         Cpu cpu = new Cpu();
         cpu.execute(instructions);
