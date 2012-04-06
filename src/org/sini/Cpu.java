@@ -296,13 +296,13 @@ public final class Cpu {
                 return m[r[op - 0x10].v + m[r[PC].v++].v];
                 
             case 0x18:
-                return m[r[SP].v++];
+                return m[modify ? r[SP].v++ : r[SP].v];
                 
             case 0x19:
                 return m[r[SP].v];      
                 
             case 0x1A:
-                return m[--r[SP].v];
+                return m[modify ? --r[SP].v : r[SP].v];
             
             case 0x1B:
                 return r[SP]; 
