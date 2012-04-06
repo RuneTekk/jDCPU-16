@@ -84,11 +84,16 @@ public final class Cpu {
         while(true) {
             int op = m[r[PC].v++].v;
             if((op & 0xF) != 0) {
-                Object a = getValue(op >>> 4 & 0x3F);
-                if(!(a instanceof Cell))
-                    throw new RuntimeException();
-                Cell aValue = (Cell) a;
+                Object a = getValue(op >>> 4 & 0x3F);                                
                 Object b = getValue(op >>> 10 & 0x3F);
+                if(!(a instanceof Cell)) {
+                    Object temp = a;
+                    a = b;
+                    b = temp;
+                }   
+                if(!(a instanceof Cell))
+                    throw new RuntimeException("Invalid instruction");
+                Cell aValue = (Cell) a;
                 int bValue = b instanceof Cell ? ((Cell) b).v : (Integer) b;
                 switch(op & 0xF) {
 
@@ -351,9 +356,7 @@ public final class Cpu {
      * @param args The command line arguments.
      */
     public static void main(String[] args) {
-         int[] instructions = new int[] { 0x71e1, 0x1000, //SET [1000],PC
-            0x6da1 // SET PUSH, SP
-        };
+         int[] instructions = new int[] { 0x8401 };
 
         Cpu cpu = new Cpu();
         cpu.execute(instructions);
