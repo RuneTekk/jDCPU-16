@@ -84,6 +84,7 @@ public final class Cpu {
         while(true) {
             int op = m[r[PC].v++].v;
             if((op & 0xF) != 0) {
+                boolean fail = false;
                 Object a = getValue(op >>> 4 & 0x3F);                                
                 Object b = getValue(op >>> 10 & 0x3F);
                 if(!(a instanceof Cell)) {
@@ -92,87 +93,105 @@ public final class Cpu {
                     b = temp;
                 }   
                 if(!(a instanceof Cell))
-                    continue;
-                Cell aValue = (Cell) a;
+                    fail = true;
+                Cell aValue = !fail ? (Cell) a : null;
                 int bValue = b instanceof Cell ? ((Cell) b).v : (Integer) b;
                 switch(op & 0xF) {
 
-                    case OP_SET:                   
-                        ((Cell) a).v = bValue;
+                    case OP_SET:  
+                        if(!fail)
+                            ((Cell) a).v = bValue;
                         r[C].v++;
                         break;
 
-                    case OP_ADD:                
-                        int value = aValue.v + bValue;
-                        if(value > 0xFFFF) {
-                            r[O].v = 0x0001;
-                            value &= 0xFFFF;
+                    case OP_ADD:  
+                        if(!fail) {
+                            int value = aValue.v + bValue;
+                            if(value > 0xFFFF) {
+                                r[O].v = 0x0001;
+                                value &= 0xFFFF;
+                            }
+                            aValue.v = value;
                         }
-                        aValue.v = value;
                         r[C].v += 2;
                         break;
 
                     case OP_SUB:
-                        value = aValue.v - bValue;
-                        if(value < 0) {
-                            r[O].v = 0xFFFF;
-                            value &= 0xFFFF;
+                        if(!fail) {
+                            int value = aValue.v - bValue;
+                            if(value < 0) {
+                                r[O].v = 0xFFFF;
+                                value &= 0xFFFF;
+                            }
+                            aValue.v = value;
                         }
-                        aValue.v = value;
                         r[C].v += 2;
                         break;
 
                     case OP_MUL:
-                        value = aValue.v * bValue;
-                        aValue.v = value & 0xFFFF;
-                        r[O].v = value >>> 16;
+                        if(!fail) {
+                            int value = aValue.v * bValue;
+                            aValue.v = value & 0xFFFF;
+                            r[O].v = value >>> 16;
+                        }
                         r[C].v += 2;
                         break;
 
                     case OP_DIV:
-                        if(bValue == 0) {
-                            aValue.v = 0;
-                            r[O].v = 0;
-                        } else {
-                            aValue.v = aValue.v/bValue & 0xFFFF;
-                            r[O].v = (aValue.v << 16)/bValue & 0xFFFF;
+                        if(!fail) {
+                            if(bValue == 0) {
+                                aValue.v = 0;
+                                r[O].v = 0;
+                            } else {
+                                aValue.v = aValue.v/bValue & 0xFFFF;
+                                r[O].v = (aValue.v << 16)/bValue & 0xFFFF;
+                            }
                         }
                         r[C].v += 3;
                         break;
 
                     case OP_MOD:
-                        if(bValue == 0) {
-                            aValue.v = 0;
-                        } else
-                            aValue.v = aValue.v % bValue;
+                        if(!fail) {
+                            if(bValue == 0) {
+                                aValue.v = 0;
+                            } else
+                                aValue.v = aValue.v % bValue;
+                        }
                         r[C].v += 3;
                         break;
 
                     case OP_SHL:
-                        value = aValue.v << bValue;
-                        r[O].v = value >>> 16;
-                        aValue.v = value & 0xFFFF;
+                        if(!fail) {
+                            int value = aValue.v << bValue;
+                            r[O].v = value >>> 16;
+                            aValue.v = value & 0xFFFF;
+                        }
                         r[C].v += 2;
                         break;
 
                     case OP_SHR:
-                        aValue.v = aValue.v >>> bValue & 0xFFFF;
-                        r[O].v = aValue.v << 16 >>> bValue & 0xFFFF;
+                        if(!fail) {
+                            aValue.v = aValue.v >>> bValue & 0xFFFF;
+                            r[O].v = aValue.v << 16 >>> bValue & 0xFFFF;
+                        }
                         r[C].v += 2;
                         break;
 
                     case OP_AND:
-                        aValue.v &= bValue;
+                        if(!fail)
+                            aValue.v &= bValue;
                         r[C].v++;
                         break;
 
                     case OP_OR:
-                        aValue.v |= bValue;
+                        if(!fail)
+                            aValue.v |= bValue;
                         r[C].v++;
                         break;
 
                     case OP_XOR:
-                        aValue.v ^= bValue;
+                        if(!fail)
+                            aValue.v ^= bValue;
                         r[C].v++;
                         break;
 
