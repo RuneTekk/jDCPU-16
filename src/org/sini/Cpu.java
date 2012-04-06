@@ -85,8 +85,8 @@ public final class Cpu {
             int op = m[r[PC].v++].v;
             if((op & 0xF) != 0) {
                 boolean fail = false;
-                Object a = getValue(op >>> 4 & 0x3F);                                
-                Object b = getValue(op >>> 10 & 0x3F);
+                Object a = getValue(op >>> 4 & 0x3F, true);                                
+                Object b = getValue(op >>> 10 & 0x3F, true);
                 if(!(a instanceof Cell)) {
                     Object temp = a;
                     a = b;
@@ -198,8 +198,8 @@ public final class Cpu {
                     case OP_IFE:
                         if(aValue.v != bValue) {
                             op = m[r[PC].v++].v;
-                            getValue(op >>> 4 & 0x3F);
-                            getValue(op >>> 10 & 0x3F);
+                            getValue(op >>> 4 & 0x3F, false);
+                            getValue(op >>> 10 & 0x3F, false);
                             r[C].v++;
                         }
                         r[C].v += 2;
@@ -208,8 +208,8 @@ public final class Cpu {
                     case OP_IFN:
                         if(aValue.v == bValue) {
                             op = m[r[PC].v++].v;
-                            getValue(op >>> 4 & 0x3F);
-                            getValue(op >>> 10 & 0x3F);
+                            getValue(op >>> 4 & 0x3F, false);
+                            getValue(op >>> 10 & 0x3F, false);
                             r[C].v++;
                         }
                         r[C].v += 2;
@@ -218,8 +218,8 @@ public final class Cpu {
                     case OP_IFG:
                         if(aValue.v <= bValue) {
                             op = m[r[PC].v++].v;
-                            getValue(op >>> 4 & 0x3F);
-                            getValue(op >>> 10 & 0x3F);
+                            getValue(op >>> 4 & 0x3F, false);
+                            getValue(op >>> 10 & 0x3F, false);
                             r[C].v++;
                         }
                         r[C].v += 2;
@@ -228,8 +228,8 @@ public final class Cpu {
                      case OP_IFB:
                         if((aValue.v & bValue) == 0) {
                             op = m[r[PC].v++].v;
-                            getValue(op >>> 4 & 0x3F);
-                            getValue(op >>> 10 & 0x3F);
+                            getValue(op >>> 4 & 0x3F, false);
+                            getValue(op >>> 10 & 0x3F, false);
                             r[C].v++;
                         }
                         r[C].v += 2;
@@ -237,7 +237,7 @@ public final class Cpu {
                 }
             } else {
                 op >>>= 4;
-                Object a = getValue(op >>> 6);
+                Object a = getValue(op >>> 6, true);
                 int aValue = a instanceof Cell ? ((Cell) a).v : (Integer) a;
                 switch(op & 0x3F) {
 
@@ -258,9 +258,10 @@ public final class Cpu {
     /**
      * Gets the v from a v opcode.
      * @param op The opcode.
+     * @param modify Modify the stack pointer.
      * @return The v from the opcode.
      */
-    public Object getValue(int op) {
+    public Object getValue(int op, boolean modify) {
         switch(op) {
             
             case 0x00:
@@ -375,7 +376,16 @@ public final class Cpu {
      * @param args The command line arguments.
      */
     public static void main(String[] args) {
-        int[] instructions = new int[] { 0x6da1, 0x65e1 , 0x1001 };
+        int[] instructions = new int[] { 
+//SET [0x1000], SP ; should save initial stack pointer
+        0x6de1 ,0x1000 ,
+//IFN A,A
+        0x000d ,
+//	SET PUSH,1 ; if evaluated, SP will be modified
+        0x85a1 ,
+//SET [0x1001],SP ; should save same as [0x1000]
+        0x6de1 , 0x1001
+};
 
         Cpu cpu = new Cpu();
         cpu.execute(instructions);
