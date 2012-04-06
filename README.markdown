@@ -1,5 +1,3 @@
-#jDCPU-16
-* * *
 
 ##Introduction
 
