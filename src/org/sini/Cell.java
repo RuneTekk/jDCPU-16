@@ -11,4 +11,16 @@ public final class Cell {
      */
     int v;
     
+    /**
+     * The number of this cell.
+     */
+    int n;
+    
+    /**
+     * Constructs a new {@link Cell};
+     * @param n The cell number.
+     */
+    public Cell(int n) {
+        this.n = n;
+    } 
 }

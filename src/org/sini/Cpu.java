@@ -60,10 +60,10 @@ public final class Cpu {
     public void initialize() {
         m = new Cell[AMOUNT_MEMORY];
         for(int i = 0; i < m.length; i++)
-            m[i] = new Cell();
+            m[i] = new Cell(i);
         r = new Cell[AMOUNT_REGISTERS + 4];   
         for(int i = 0; i < r.length; i++)
-            r[i] = new Cell();
+            r[i] = new Cell(i);
         r[SP].v = 0xFFFF;
     }
     
@@ -289,11 +289,11 @@ public final class Cpu {
                 return r[O];
                 
             case 0x1E:
-                r[C].v ++;
+                r[C].v++;
                 return m[m[r[PC].v++].v];
                 
             case 0x1F:
-                r[C].v ++;
+                r[C].v++;
                 return m[r[PC].v++];
                 
             case 0x20:
@@ -351,17 +351,16 @@ public final class Cpu {
      * @param args The command line arguments.
      */
     public static void main(String[] args) {
-        int[] instructions = new int[] { 0x7c01, 0x0030, 0x7de1, 0x1000, 0x0020, 0x7803, 0x1000, 0xc00d,
-                                         0x7dc1, 0x001a, 0xa861, 0x7c01, 0x2000, 0x2161, 0x2000, 0x8463,
-                                         0x806d, 0x7dc1, 0x000d, 0x9031, 0x7c10, 0x0018, 0x7dc1, 0x001a,
-                                         0x9037, 0x61c1, 0x7dc1, 0x001a, 0x0000, 0x0000, 0x0000, 0x0000
-                                       };
+         int[] instructions = new int[] { 0x71e1, 0x1000, //SET [1000],PC
+            0x6da1 // SET PUSH, SP
+        };
+
         Cpu cpu = new Cpu();
-        //cpu.execute(instructions);
+        cpu.execute(instructions);
         Asm asm = new Asm();
         asm.assemble(";hello\n"
                    + ":hello\n"
-                   + "set CP, [0xffff] \n"
+                   + "set CP, SP \n"
                    + "");
     }
 }

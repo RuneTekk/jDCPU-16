@@ -41,6 +41,11 @@ public final class Asm {
     private static final Pattern FIND_ADDR = Pattern.compile("\\[([^\\]]+)");
     
     /**
+     * Pattern to find instruction to reference the a register to memory.
+     */
+    private static final Pattern REG_ADDR = Pattern.compile("\\[[(a-cx-zij)]\\]");
+    
+    /**
      * Marks the origin of a label.
      */
     private final static char LABEL_ORIGIN = ':';
@@ -48,7 +53,7 @@ public final class Asm {
     /**
      * Marks a label reference.
      */
-    private final static char LABEL_REF = '|';
+    private final static char LABEL_REF = '%';
     
     /**
      * Assembles the code into an instruction list.
@@ -65,7 +70,7 @@ public final class Asm {
             code = code.replaceFirst(":" + labelName, "" + LABEL_ORIGIN + labelOffset);
             if(code.indexOf(":" + labelName) >= 0)
                 throw new RuntimeException("Duplicate label: " + labelName);
-            code = code.replaceAll(labelName, "" + LABEL_REF + labelOffset++);
+            code = code.replaceAll(labelName, "" + LABEL_REF + labelOffset++ + LABEL_REF);
         }
         Matcher addrMatcher = FIND_ADDR.matcher(code);
         while(addrMatcher.find()) {
@@ -89,7 +94,7 @@ public final class Asm {
                     labels[offset] = pc;
                     continue;
                 }
-                int amountArguments = getAmountArguments(words[word]);
+                int amountArguments = memory[pc++] = getAmountArguments(words[word]);
                 if(amountArguments < 0)
                     throw new RuntimeException("Line " + (line + 1) + ", unknown op: " + words[word]);
                 if(word + amountArguments >= words.length)
@@ -99,6 +104,7 @@ public final class Asm {
                     int counterCost = getCounterCost(wordValue);
                     if(counterCost == -1)
                         throw new RuntimeException("Line " + (line + 1) + ", unknown value: " + wordValue);
+                    pc += counterCost;
                 }
             }
         }
@@ -122,6 +128,27 @@ public final class Asm {
     }
     
     /**
+     * Gets the opcode of an operation.
+     * @param op The operation to get the opcode for.
+     * @return The opcode.
+     */
+    public int getOperationOp(String op) {
+        if(op.equals("jsr"))
+            return 0x10;
+        else if(op.equals("set"))
+            return Ops.OP_SET;
+        else if(op.equals("add"))
+            return Ops.OP_ADD;
+        else if(op.equals("sub"))
+            return Ops.OP_SUB;
+        else if(op.equals("mul"))
+            return Ops.OP_MUL;
+        else if(op.equals("div"))
+            return Ops.OP_DIV;
+        return -1;
+    }
+    
+    /**
      * Gets the counter cost for a value operation.
      * @param value The value operation to get the cost for.
      * @return The counter cost, -1 if the value is unrecognized.
@@ -132,8 +159,9 @@ public final class Asm {
                value.equals("i") || value.equals("j") || value.equals("o") || 
                value.equals("cp") || value.equals("sp") || value.equals("pop") || 
                value.equals("peek") || value.equals("push") || 
-               value.matches("\\[[a-cx-zij]\\]") ? 0 : 
+               value.matches(REG_ADDR.pattern()) ? 0 : 
                value.matches("0x[01]?[0-9a-f]+") || 
+               value.matches(LABEL_REF + "\\d*" + LABEL_REF) ||
                value.matches("\\[0x[0-9a-f]{1,4}\\]") ||
                value.matches("\\[{2}0x[0-9a-f]{1,4}\\]{2}") ? 1 : -1;
     } 
