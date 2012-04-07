@@ -16,7 +16,7 @@ public final class Cpu {
     /**
      * The starting index in the memory array of video ram.
      */
-    private static final int VIDEO_RAM = 0x8000;
+    public static final int VIDEO_RAM = 0x8000;
     
     /**
      * As of DCPU-16 Version 1.1 the amount of registers is 8; they are
@@ -162,7 +162,7 @@ public final class Cpu {
 
                     case OP_SHL:
                         if(!fail) {
-                            int value = aValue.v << bValue;
+                            int value = aValue.v >> bValue;
                             r[O].v = value >>> 16;
                             aValue.v = value & 0xFFFF;
                         }
@@ -171,7 +171,7 @@ public final class Cpu {
 
                     case OP_SHR:
                         if(!fail) {
-                            aValue.v = aValue.v >>> bValue & 0xFFFF;
+                            aValue.v = aValue.v << bValue & 0xFFFF;
                             r[O].v = aValue.v << 16 >>> bValue & 0xFFFF;
                         }
                         r[C].v += 2;
@@ -377,17 +377,10 @@ public final class Cpu {
      */
     public static void main(String[] args) {
         int[] instructions = new int[] { 
-//SET [0x1000], SP ; should save initial stack pointer
-        0x6de1 ,0x1000 ,
-//IFN A,A
-        0x000d ,
-//	SET PUSH,1 ; if evaluated, SP will be modified
-        0x85a1 ,
-//SET [0x1001],SP ; should save same as [0x1000]
-        0x6de1 , 0x1001
-};
 
+        };
         Cpu cpu = new Cpu();
+        Display display = new Display(cpu);
         cpu.execute(instructions);
         Asm asm = new Asm();
         asm.assemble(";hello\n"

@@ -101,10 +101,10 @@ public final class Asm {
                     throw new RuntimeException("Line " + (line + 1) + ", missing arg: " + (word + amountArguments + 1 - words.length) + ", op: " + words[word]);               
                 while(amountArguments-- > 0) { 
                     String wordValue = words[++word].replaceAll("_", " ");
-                    int counterCost = getCounterCost(wordValue);
-                    if(counterCost == -1)
+                    int cc = getCounterCost(wordValue);
+                    if(cc == -1)
                         throw new RuntimeException("Line " + (line + 1) + ", unknown value: " + wordValue);
-                    pc += counterCost;
+                    pc += cc;
                 }
             }
         }
