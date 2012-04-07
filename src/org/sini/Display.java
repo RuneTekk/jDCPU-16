@@ -20,9 +20,14 @@ public final class Display extends Frame {
     private static final String DISPLAY_TITLE = "jDCPU-16";
     
     /**
-     * The amount of pixels in the application per 
+     * The ratio of pixels for the width to the amount of pixels on the display.
      */
-    private final static int PIXEL_RATIO = 25;
+    private final static int WIDTH_RATIO = 14;
+    
+    /**
+     * The ratio of pixels for the height to the amount of pixels on the display.
+     */
+    private final static int HEIGHT_RATIO = 25;   
     
     /**
      * The amount of pixels in the displays width.
@@ -57,18 +62,29 @@ public final class Display extends Frame {
     @Override
     public void paint(Graphics graphics) {
         Font titleFont = new Font("Ariel", Font.BOLD, 14);
+        Font consoleFont = new Font("MonteCarlo", Font.PLAIN, 18);
         graphics.translate(3, 24);
         for(int x = 0; x < DISPLAY_WIDTH; x++) {
             for(int y = 0; y < DISPLAY_HEIGHT; y++) {
-                int m = cpu.m[Cpu.VIDEO_RAM + x + (y * DISPLAY_HEIGHT)].v;
-                graphics.setColor(new Color(m, false));
-                graphics.fillRect(x * PIXEL_RATIO, y * PIXEL_RATIO, PIXEL_RATIO, PIXEL_RATIO);
+                int value = cpu.m[Cpu.VIDEO_RAM + x + (y * DISPLAY_HEIGHT)].v;
+                int bc = value >> 12 & 0xF;
+                graphics.setColor(new Color((bc & 0x4) != 0 ? 255 : 0, 
+                                            (bc & 0x2) != 0 ? 255 : 0, 
+                                            (bc & 0x1) != 0 ? 255 : 0));
+                graphics.fillRect(x * WIDTH_RATIO, y * HEIGHT_RATIO, WIDTH_RATIO, HEIGHT_RATIO);
+                int fc = value >>> 8 & 0xF;
+                String c = "" + (char) (value & 0xFF);
+                graphics.setFont(consoleFont);
+                graphics.setColor(new Color((fc & 0x4) != 0 ? 255 : 0, 
+                                            (fc & 0x2) != 0 ? 255 : 0, 
+                                            (fc & 0x1) != 0 ? 255 : 0));
+                graphics.drawString(c, x * WIDTH_RATIO + (WIDTH_RATIO/2 - graphics.getFontMetrics().stringWidth(c)/2), y * HEIGHT_RATIO + HEIGHT_RATIO - 5);                 
             }
         }
         graphics.setColor(Color.WHITE);
         graphics.fillRect(0, displayHeight - 60, displayWidth, 1);
         graphics.setFont(titleFont);
-        graphics.drawString(DISPLAY_TITLE, displayWidth/2 - graphics.getFontMetrics().stringWidth(DISPLAY_TITLE), displayHeight - 60 + graphics.getFontMetrics().getHeight());   
+        graphics.drawString(DISPLAY_TITLE, displayWidth/2 - graphics.getFontMetrics().stringWidth(DISPLAY_TITLE)/2, displayHeight - 60 + graphics.getFontMetrics().getHeight());   
     }
     
     /**
@@ -77,8 +93,8 @@ public final class Display extends Frame {
      */
     public Display(Cpu cpu) {
         super("jDCPU Display");
-        displayWidth = DISPLAY_WIDTH * PIXEL_RATIO;
-        displayHeight = DISPLAY_HEIGHT * PIXEL_RATIO + 60;
+        displayWidth = DISPLAY_WIDTH * WIDTH_RATIO;
+        displayHeight = DISPLAY_HEIGHT * HEIGHT_RATIO + 60;
         setSize(displayWidth, displayHeight);
         setBackground(Color.BLACK);
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();

@@ -61,6 +61,11 @@ public final class Cpu {
         m = new Cell[AMOUNT_MEMORY];
         for(int i = 0; i < m.length; i++)
             m[i] = new Cell(i);
+        m[0x8000].v = 0x1 << 8 | 72;
+        m[0x8001].v = 0x2 << 8 | 69;
+        m[0x8002].v = 0x4 << 8 | 76;
+        m[0x8003].v = 0x7 << 8 | 76;
+        m[0x8004].v = 0x7 << 12 | 79;
         r = new Cell[AMOUNT_REGISTERS + 4];   
         for(int i = 0; i < r.length; i++)
             r[i] = new Cell(i);
@@ -84,7 +89,7 @@ public final class Cpu {
         while(true) {
             int op = m[r[PC].v++].v;
             if((op & 0xF) != 0) {
-                boolean fail = false;
+
                 Object a = getValue(op >>> 4 & 0x3F, true);                                
                 Object b = getValue(op >>> 10 & 0x3F, true);
                 if(!(a instanceof Cell)) {
@@ -92,111 +97,110 @@ public final class Cpu {
                     a = b;
                     b = temp;
                 }   
-                if(!(a instanceof Cell))
-                    fail = true;
-                Cell aValue = !fail ? (Cell) a : null;
+                boolean bothLiteral = !(a instanceof Cell) && !(b instanceof Cell);
+                int aValue = a instanceof Cell ? ((Cell) a).v : (Integer) a;
                 int bValue = b instanceof Cell ? ((Cell) b).v : (Integer) b;
                 switch(op & 0xF) {
 
                     case OP_SET:  
-                        if(!fail)
+                        if(!bothLiteral)
                             ((Cell) a).v = bValue;
                         r[C].v++;
                         break;
 
                     case OP_ADD:  
-                        if(!fail) {
-                            int value = aValue.v + bValue;
+                        if(!bothLiteral) {
+                            int value = ((Cell) a).v + bValue;
                             if(value > 0xFFFF) {
                                 r[O].v = 0x0001;
                                 value &= 0xFFFF;
                             }
-                            aValue.v = value;
+                            ((Cell) a).v = value;
                         }
                         r[C].v += 2;
                         break;
 
                     case OP_SUB:
-                        if(!fail) {
-                            int value = aValue.v - bValue;
+                        if(!bothLiteral) {
+                            int value = ((Cell) a).v - bValue;
                             if(value < 0) {
                                 r[O].v = 0xFFFF;
                                 value &= 0xFFFF;
                             }
-                            aValue.v = value;
+                            ((Cell) a).v = value;
                         }
                         r[C].v += 2;
                         break;
 
                     case OP_MUL:
-                        if(!fail) {
-                            int value = aValue.v * bValue;
-                            aValue.v = value & 0xFFFF;
+                        if(!bothLiteral) {
+                            int value = ((Cell) a).v * bValue;
+                            ((Cell) a).v = value & 0xFFFF;
                             r[O].v = value >>> 16;
                         }
                         r[C].v += 2;
                         break;
 
                     case OP_DIV:
-                        if(!fail) {
+                        if(!bothLiteral) {
                             if(bValue == 0) {
-                                aValue.v = 0;
+                                ((Cell) a).v = 0;
                                 r[O].v = 0;
                             } else {
-                                aValue.v = aValue.v/bValue & 0xFFFF;
-                                r[O].v = (aValue.v << 16)/bValue & 0xFFFF;
+                                ((Cell) a).v = ((Cell) a).v/bValue & 0xFFFF;
+                                r[O].v = (((Cell) a).v << 16)/bValue & 0xFFFF;
                             }
                         }
                         r[C].v += 3;
                         break;
 
                     case OP_MOD:
-                        if(!fail) {
+                        if(!bothLiteral) {
                             if(bValue == 0) {
-                                aValue.v = 0;
+                                ((Cell) a).v = 0;
                             } else
-                                aValue.v = aValue.v % bValue;
+                                ((Cell) a).v = ((Cell) a).v % bValue;
                         }
                         r[C].v += 3;
                         break;
 
                     case OP_SHL:
-                        if(!fail) {
-                            int value = aValue.v >> bValue;
+                        if(!bothLiteral) {
+                            int value = ((Cell) a).v >> bValue;
                             r[O].v = value >>> 16;
-                            aValue.v = value & 0xFFFF;
+                            ((Cell) a).v = value & 0xFFFF;
                         }
                         r[C].v += 2;
                         break;
 
                     case OP_SHR:
-                        if(!fail) {
-                            aValue.v = aValue.v << bValue & 0xFFFF;
-                            r[O].v = aValue.v << 16 >>> bValue & 0xFFFF;
+                        if(!bothLiteral) {
+                            ((Cell) a).v = ((Cell) a).v << bValue & 0xFFFF;
+                            r[O].v = ((Cell) a).v << 16 >>> bValue & 0xFFFF;
                         }
                         r[C].v += 2;
                         break;
 
                     case OP_AND:
-                        if(!fail)
-                            aValue.v &= bValue;
+                        if(!bothLiteral)
+                            ((Cell) a).v &= bValue;
                         r[C].v++;
                         break;
 
                     case OP_OR:
-                        if(!fail)
-                            aValue.v |= bValue;
+                        if(!bothLiteral)
+                            ((Cell) a).v |= bValue;
                         r[C].v++;
                         break;
 
                     case OP_XOR:
-                        if(!fail)
-                            aValue.v ^= bValue;
+                        if(!bothLiteral)
+                            ((Cell) a).v ^= bValue;
                         r[C].v++;
                         break;
 
                     case OP_IFE:
-                        if(aValue.v != bValue) {
+                        if(aValue != bValue) {
                             op = m[r[PC].v++].v;
                             getValue(op >>> 4 & 0x3F, false);
                             getValue(op >>> 10 & 0x3F, false);
@@ -206,7 +210,7 @@ public final class Cpu {
                         break;
 
                     case OP_IFN:
-                        if(aValue.v == bValue) {
+                        if(aValue == bValue) {
                             op = m[r[PC].v++].v;
                             getValue(op >>> 4 & 0x3F, false);
                             getValue(op >>> 10 & 0x3F, false);
@@ -216,7 +220,7 @@ public final class Cpu {
                         break;
 
                     case OP_IFG:
-                        if(aValue.v <= bValue) {
+                        if(aValue <= bValue) {
                             op = m[r[PC].v++].v;
                             getValue(op >>> 4 & 0x3F, false);
                             getValue(op >>> 10 & 0x3F, false);
@@ -226,7 +230,7 @@ public final class Cpu {
                         break;
 
                      case OP_IFB:
-                        if((aValue.v & bValue) == 0) {
+                        if((aValue & bValue) == 0) {
                             op = m[r[PC].v++].v;
                             getValue(op >>> 4 & 0x3F, false);
                             getValue(op >>> 10 & 0x3F, false);
