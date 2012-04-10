@@ -1,5 +1,8 @@
 package org.sini;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.IOException;
 import static org.sini.Ops.*;
 
 /**
@@ -19,8 +22,7 @@ public final class Cpu {
     public static final int VIDEO_RAM = 0x8000;
     
     /**
-     * As of DCPU-16 Version 1.1 the amount of registers is 8; they are
-     * (A, B, C, X, Y, Z, I, and J in that order)
+     * The amount of registers in the DCPU.
      */
     private static final int AMOUNT_REGISTERS = 8;
     
@@ -61,15 +63,19 @@ public final class Cpu {
         m = new Cell[AMOUNT_MEMORY];
         for(int i = 0; i < m.length; i++)
             m[i] = new Cell(i);
-        m[0x8000].v = 0x1 << 8 | 72;
-        m[0x8001].v = 0x2 << 8 | 69;
-        m[0x8002].v = 0x4 << 8 | 76;
-        m[0x8003].v = 0x7 << 8 | 76;
-        m[0x8004].v = 0x7 << 12 | 79;
         r = new Cell[AMOUNT_REGISTERS + 4];   
         for(int i = 0; i < r.length; i++)
             r[i] = new Cell(i);
         r[SP].v = 0xFFFF;
+    }
+    
+    /**
+     * Executes a program.
+     * @param is The {@link InputStream} to mount the memory from.
+     */
+    public void execute(InputStream is) throws IOException {
+        mount(is);
+        execute();
     }
     
     /**
@@ -187,7 +193,7 @@ public final class Cpu {
                         r[C].v++;
                         break;
 
-                    case OP_OR:
+                    case OP_BOR:
                         if(!bothLiteral)
                             ((Cell) a).v |= bValue;
                         r[C].v++;
@@ -367,6 +373,21 @@ public final class Cpu {
     
     /**
      * Mount the memory of a program onto the memory of the {@link Cpu}.
+     * @param is The {@link InputStream} to mount the memory from.
+     */
+    public void mount(InputStream is) throws IOException {
+        initialize();
+        int available = is.available();
+        if(available % 2 != 0)
+            throw new IOException();
+        int offset = 0;
+        while((available -= 2) > 0) {
+            m[offset++].v = is.read() << 8 | is.read();
+        }
+    }
+    
+    /**
+     * Mount the memory of a program onto the memory of the {@link Cpu}.
      * @param memory The short array that represents the memory of the program.
      */
     public void mount(int[] memory) {
@@ -380,16 +401,26 @@ public final class Cpu {
      * @param args The command line arguments.
      */
     public static void main(String[] args) {
-        int[] instructions = new int[] { 
-
-        };
-        Cpu cpu = new Cpu();
-        Display display = new Display(cpu);
-        cpu.execute(instructions);
-        Asm asm = new Asm();
-        asm.assemble(";hello\n"
-                   + ":hello\n"
-                   + "set CP, SP \n"
-                   + "");
+        Cpu cpu = null;
+        try {
+            //cpu = new Cpu();  
+            //Display display = new Display(cpu);
+            //cpu.execute(new FileInputStream("./asm/sys.bin"));
+            Dasm dasm = new Dasm();
+            System.out.println(dasm.disassemble(new int[] {//SET [0x1000],PC ; should save 0
+        0x71e1 ,0x1000 ,
+//SET PUSH,SP ;
+        0x6da1, 
+//SET [0x1001],PEEK ; should save "initial stack pointer-1"
+        0x65e1 , 0x1001 ,
+//IFN A,A
+        0x000d ,
+//	SET PUSH,PUSH
+        0x69a1 ,
+//SET [0x1002],SP ; should save same as [0x1001]
+        0x6de1 , 0x1002}));
+        } catch(Exception ex) {
+            System.err.println("Exception thrown: " + ex + ", PC: " + cpu.r[PC].v);
+        }
     }
 }
