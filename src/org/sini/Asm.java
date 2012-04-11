@@ -1,5 +1,7 @@
 package org.sini;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -94,7 +96,22 @@ public final class Asm {
     
     /**
      * Assembles the code into an instruction list.
+     * @param is The {@link InputStream} to read from.
+     * @return The assembled instructions.
+     */
+    public int[] assemble(InputStream is) throws IOException {
+        String str = "";
+        int read;
+        while((read = is.read()) != -1) {
+            str += (char) read;
+        }
+        return assemble(str);
+    }
+    
+    /**
+     * Assembles the code into an instruction list.
      * @param code The code to assemble into instructions.
+     * @return The assembled instructions.
      */
     public int[] assemble(String code) {      
         code = code.toLowerCase().replaceAll("[^\\w\\[\\]+\n;: ]", "").replaceAll(";[^\n]*", "");
@@ -104,11 +121,13 @@ public final class Asm {
             if(labelOffset > MAXIMUM_LABELS)
                 throw new RuntimeException("Label overflow");
             String name = matcher.group(1);
-            code = matcher.replaceFirst(":" + labelOffset);
+            if(name.length() < 4)
+                throw new RuntimeException("Illegal label, " + '\'' + name + '\'' + ", on line " + getLineNumber(code, matcher.start()));
+            code = code.replaceFirst(matcher.group(), ":" + labelOffset);
             int duplicateIndex = -1;
             if((duplicateIndex = code.indexOf(matcher.group())) > -1)
                 throw new RuntimeException("Duplicate label, " + '\'' + name + '\'' + ", on line " + getLineNumber(code, duplicateIndex));
-            code = code.replace(name, "#" + labelOffset + "#");
+            code = code.replaceAll(name, "#" + labelOffset++ + "#");
         }       
         matcher = HEXADECIMAL_PATTERN.matcher(code);
         while(matcher.find()) {          

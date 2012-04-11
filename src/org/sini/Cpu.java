@@ -1,5 +1,6 @@
 package org.sini;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import static org.sini.Ops.*;
@@ -400,7 +401,12 @@ public final class Cpu {
      * @param args The command line arguments.
      */
     public static void main(String[] args) {
-        Asm asm = new Asm();
-        asm.assemble("SET A, 0x30");
+        try {
+            Cpu cpu = new Cpu();
+            Asm asm = new Asm();
+            cpu.execute(asm.assemble(new FileInputStream("./asm/sys.asm")));
+        } catch(Exception ex) {
+            System.err.println(ex);
+        }
     }
 }
