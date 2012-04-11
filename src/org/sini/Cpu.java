@@ -1,6 +1,5 @@
 package org.sini;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import static org.sini.Ops.*;
@@ -401,26 +400,7 @@ public final class Cpu {
      * @param args The command line arguments.
      */
     public static void main(String[] args) {
-        Cpu cpu = null;
-        try {
-            //cpu = new Cpu();  
-            //Display display = new Display(cpu);
-            //cpu.execute(new FileInputStream("./asm/sys.bin"));
-            Dasm dasm = new Dasm();
-            System.out.println(dasm.disassemble(new int[] {//SET [0x1000],PC ; should save 0
-        0x71e1 ,0x1000 ,
-//SET PUSH,SP ;
-        0x6da1, 
-//SET [0x1001],PEEK ; should save "initial stack pointer-1"
-        0x65e1 , 0x1001 ,
-//IFN A,A
-        0x000d ,
-//	SET PUSH,PUSH
-        0x69a1 ,
-//SET [0x1002],SP ; should save same as [0x1001]
-        0x6de1 , 0x1002}));
-        } catch(Exception ex) {
-            System.err.println("Exception thrown: " + ex + ", PC: " + cpu.r[PC].v);
-        }
+        Asm asm = new Asm();
+        asm.assemble("SET A, 0x30");
     }
 }
