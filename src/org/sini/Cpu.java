@@ -29,22 +29,22 @@ public final class Cpu {
     /**
      * The program counter index in the registers array.
      */
-    private static final int PC = 8;
+    public static final int PC = 8;
     
     /**
      * The stack pointer index in the registers array.
      */
-    private static final int SP = 9;
+    public static final int SP = 9;
     
     /**
      * The overflow index in the registers array.
      */
-    private static final int O = 10;
+    public static final int O = 10;
     
     /**
      * The cycle index in the registers array.
      */
-    private static final int C = 11;
+    public static final int C = 11;
     
     /**
      * The local memory of this {@link Cpu}.
@@ -381,7 +381,7 @@ public final class Cpu {
         if(available % 2 != 0)
             throw new IOException();
         int offset = 0;
-        while((available -= 2) > 0) {
+        while((available -= 2) >= 0) {
             m[offset++].v = is.read() << 8 | is.read();
         }
     }
@@ -394,19 +394,5 @@ public final class Cpu {
         initialize();
         for(int i = 0; i < memory.length; i++) 
             m[i].v = memory[i];
-    }
-    
-    /**
-     * The main entry point for this program.
-     * @param args The command line arguments.
-     */
-    public static void main(String[] args) {
-        try {
-            Cpu cpu = new Cpu();
-            Asm asm = new Asm();
-            cpu.execute(asm.assemble(new FileInputStream("./asm/sys.asm")));
-        } catch(Exception ex) {
-            System.err.println(ex);
-        }
     }
 }
