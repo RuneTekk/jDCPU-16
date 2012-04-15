@@ -1,0 +1,139 @@
+;                     _____               _______   _    _         
+;                    |  __ \             |__   __| | |  | |
+;                    | |__) |   _ _ __   ___| | ___| | _| | __ 
+;                    |  _  / | | | '_ \ / _ \ |/ _ \ |/ / |/ /  
+;                    | | \ \ |_| | | | |  __/ |  __/   <|   <   
+;                    |_|  \_\__,_|_| |_|\___|_|\___|_|\_\_|\_\
+;                                    
+;                                   xtea.dasm
+;
+;  Notes: Running subroutines within a subroutine is not allowed and will need to be
+;         fixed so that it is possible to do so. Register A is used for most calculations
+;		  coupled with the stack because there needs to be a solid state mediator. 
+;
+
+; Push the two values we want to encipher.
+SET PUSH, 0x20      ; rounds
+SET PUSH, 0x000A    ; k3
+SET PUSH, 0x000B    ; k2
+SET PUSH, 0x000C    ; k1
+SET PUSH, 0x000D    ; k0
+SET PUSH, 0x0001    ; v1
+SET PUSH, 0x0000    ; v0
+JSR encipher        ; Memory address pushed to stack of where the data was stored.
+SET A, POP          ; Fetch the memory address pushed to the stack in the previous sub routine.
+SET PUSH, 0x20      ; rounds
+SET PUSH, 0x000A    ; k3
+SET PUSH, 0x000B    ; k2
+SET PUSH, 0x000C    ; k1
+SET PUSH, 0x000D    ; k0
+SET PUSH, [1+A]     ; v1
+SET PUSH, [A]       ; v0
+JSR decipher        ; Memory address pushed to stack of where the data was stored.
+SET PC, kill
+
+; Sub routine to encipher.
+:encipher
+	SET Z, POP           ; Store the sub routine reference.
+	                     ; Pop all the parameters off the stack.
+	SET [0x2000], POP    ; v0
+	SET [0x2001], POP    ; v1
+	SET [0x2002], POP    ; k0
+	SET [0x2003], POP    ; k1
+	SET [0x2004], POP    ; k2
+	SET [0x2005], POP    ; k3
+	SET [0x2006], POP    ; rounds
+	SET [0x2007], 0xF1BB ; Calculated ratio.
+	SET [0x2008], 0x0000 ; Sum
+	SET I, 0x0           ; Set the iterator for the loop to zero
+	:encipherloop
+		SET A, [0x2001]           ; Set register A to v1
+		SHR A, 4                  ; Weird endian-ness.
+		SET PUSH, A               ; Push the expression onto the stack.
+		SET A, [0x2001]           ; Set register A to v1
+		SHL A, 5                  ; Weird endian-ness.
+		XOR A, POP                ; Evaluate the last expression with the current one.
+		ADD A, [0x2001]           ; Add v1 to register A.
+		SET PUSH, A               ; Push the expresison onto the stack.
+		SET A, [0x2008]           ; Set register A to the sum.
+		AND A, 0x3                ; Bit AND A to get the current key.
+		SET A, [0x2002+A]         ; Set register A to current key.
+		ADD A, [0x2008]           ; Add sum.
+		XOR A, POP                ; Set register A to XOR and the previous expression.
+		ADD [0x2000], A           ; Add the previous expression to v0.
+		ADD [0x2008], [0x2007]    ; Add the delta to sum.
+		SET A, [0x2000]           ; Set register A to v0
+		SHR A, 4                  ; Weird endian-ness.
+		SET PUSH, A               ; Push the expression onto the stack.
+		SET A, [0x2000]           ; Set register A to v0
+		SHL A, 5                  ; Weird endian-ness.
+		XOR A, POP                ; Evaluate the last expression with the current one.
+		ADD A, [0x2000]           ; Add v0 to register A.
+		SET PUSH, A               ; Push the expresison onto the stack.
+		SET A, [0x2008]           ; Set register A to the sum.
+		SHL A, 11                 ; Weird endian-ness.
+		AND A, 0x3                ; Bit AND A to get the current key.
+		SET A, [0x2002+A]         ; Set register A to current key.
+		ADD A, [0x2008]           ; Add sum.
+		XOR A, POP                ; Set register A to XOR and the previous expression.
+		ADD [0x2001], A           ; Add the previous expression to v0.
+		ADD I, 0x1
+		IFG [0x2006], I
+			set PC, encipherloop	
+	SET PUSH, 0x2000              ; Push the address that the data is located at.
+	SET PC, Z                     ; Jump back to the point where the routine was called.
+
+; Subroutine to decipher
+:decipher
+	SET Z, POP              ; Store the sub routine reference.
+	                        ; Pop all the parameters off the stack.
+	SET [0x2000], POP    ; v0
+	SET [0x2001], POP    ; v1
+	SET [0x2002], POP    ; k0
+	SET [0x2003], POP    ; k1
+	SET [0x2004], POP    ; k2
+	SET [0x2005], POP    ; k3
+	SET [0x2006], POP    ; rounds
+	SET [0x2007], 0xF1BB ; Calculated ratio.
+	SET [0x2008], [0x2006]
+	MUL [0x2008], [0x2007]
+	SET I, 0x0
+	:decipherloop
+		SET A, [0x2000]           ; Set register A to v1
+		SHR A, 4                  ; Weird endian-ness.
+		SET PUSH, A               ; Push the expression onto the stack.
+		SET A, [0x2000]           ; Set register A to v1
+		SHL A, 5                  ; Weird endian-ness.
+		XOR A, POP                ; Evaluate the last expression with the current one.
+		ADD A, [0x2000]           ; Add v1 to register A.
+		SET PUSH, A               ; Push the expresison onto the stack.
+		SET A, [0x2008]           ; Set register A to the sum.
+		SHL A, 11                 ; Weird endian-ness.
+		AND A, 0x3                ; Bit AND A to get the current key.
+		SET A, [0x2002+A]         ; Set register A to current key.
+		ADD A, [0x2008]           ; Add sum.
+		XOR A, POP                ; Set register A to XOR and the previous expression.
+		SUB [0x2001], A           ; Add the previous expression to v0.
+		SUB [0x2008], [0x2007]    ; Add the delta to sum.
+		SET A, [0x2001]           ; Set register A to v0
+		SHR A, 4                  ; Weird endian-ness.
+		SET PUSH, A               ; Push the expression onto the stack.
+		SET A, [0x2001]           ; Set register A to v0
+		SHL A, 5                  ; Weird endian-ness.
+		XOR A, POP                ; Evaluate the last expression with the current one.
+		ADD A, [0x2001]           ; Add v0 to register A.
+		SET PUSH, A               ; Push the expresison onto the stack.
+		SET A, [0x2008]           ; Set register A to the sum.
+		AND A, 0x3                ; Bit AND A to get the current key.
+		SET A, [0x2002+A]         ; Set register A to current key.
+		ADD A, [0x2008]           ; Add sum.
+		XOR A, POP                ; Set register A to XOR and the previous expression.
+		SUB [0x2000], A           ; Add the previous expression to v0.
+		ADD I, 0x1
+		IFG [0x2006], I
+			set PC, decipherloop
+	SET PUSH, 0x2000     ; Push the address that the data is located at.
+	SET PC, Z            ; Jump back to the point where the routine was called.
+
+; Just in case we are feeling a bit down :(
+:kill
