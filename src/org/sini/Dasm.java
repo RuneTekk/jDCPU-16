@@ -1,11 +1,30 @@
 package org.sini;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 /**
  * Dasm.java
  * @version 1.0.0
  * @author RuneTekk Development (SiniSoul)
  */
 public final class Dasm {
+    
+    /**
+     * Mount the memory of a program onto the memory of the {@link Cpu}.
+     * @param is The {@link InputStream} to get the code from to disassemble.
+     */
+    public String disassemble(InputStream is) throws IOException {
+        int available = is.available();
+        if(available % 2 != 0)
+            throw new IOException();
+        int[] memory = new int[available/2];
+        int offset = 0;
+        while((available -= 2) >= 0) {
+            memory[offset++] = is.read() << 8 | is.read();
+        }
+        return disassemble(memory);
+    }
     
     /**
      * Disassembles a programs instructions into an ASM code string.
@@ -17,6 +36,7 @@ public final class Dasm {
         int position = 0;
         int tabulate = 0;
         while(position < memory.length) {
+            int oldPosition = position;
             int opcodeValue = memory[position++];
             int insnOpcode = (opcodeValue & 0xF) != 0 ? opcodeValue & 0xF : opcodeValue & 0x3F0;
             int arguments = (insnOpcode & 0xF) == 0 ? 1 : 2;
@@ -35,7 +55,7 @@ public final class Dasm {
                 code += valueName;
             }
             tabulate = doTabulate ? tabulate + 1 : tabulate;
-            code += position < memory.length ? "\n" : "";
+            code += " 0x" + Integer.toHexString(oldPosition) + (position < memory.length ? "\n" : "");
         }
         return code;
     }   

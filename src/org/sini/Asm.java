@@ -77,13 +77,14 @@ public final class Asm {
     /**
      * Looks up an operator in the operators array.
      * @param str The string to lookup.
+     * @param The value is represented as a label.
      * @return The opcode of the operator.
      */
-    private static int lookupValue(String str) {
+    private static int lookupValue(String str, boolean isLabel) {
         Matcher matcher = DECIMAL_PATTERN.matcher(str);
         if(matcher.find()) {
             int value = Integer.parseInt(matcher.group());
-            if(value >= 0x0 && value <= 0x1F)
+            if(value >= 0x0 && value <= 0x1F && !isLabel)
                 return value + 0x20;
             else
                 str = matcher.replaceAll("%nw%");
@@ -124,16 +125,17 @@ public final class Asm {
             if(name.length() < 4)
                 throw new RuntimeException("Illegal label, " + '\'' + name + '\'' + ", on line " + getLineNumber(code, matcher.start()));
             code = code.replaceFirst(matcher.group(), ":" + labelOffset);
-            int duplicateIndex = -1;
-            if((duplicateIndex = code.indexOf(matcher.group())) > -1)
-                throw new RuntimeException("Duplicate label, " + '\'' + name + '\'' + ", on line " + getLineNumber(code, duplicateIndex));
-            code = code.replaceAll(name, "#" + labelOffset++ + "#");
+            if(code.matches(matcher.group() + " "))
+                throw new RuntimeException("Duplicate label, " + '\'' + name + '\'' + ", on line " + getLineNumber(code, code.indexOf(matcher.group())));
+            Matcher referenceMatcher = Pattern.compile(name + "[\n ]").matcher(code);
+            while(referenceMatcher.find()) {
+                code = code.substring(0, referenceMatcher.start()) + "#" + labelOffset++ + "#" + code.substring(referenceMatcher.end() - 1);
+            }
         }       
-        matcher = HEXADECIMAL_PATTERN.matcher(code);
-        while(matcher.find()) {          
+        while((matcher = HEXADECIMAL_PATTERN.matcher(code)).find()) {          
             String value = matcher.group(1);
-            try {
-                code = matcher.replaceAll("" + Integer.parseInt(value, 16));              
+            try {      
+                code = code.substring(0, matcher.start()) + Integer.valueOf(value, 16) + code.substring(matcher.end());              
             } catch(Exception ex) {
                 throw new RuntimeException("Invalid hexidecimal literal, " + '\'' + matcher.group() + '\'' + ", on line " + getLineNumber(code, matcher.start(1)));
             }
@@ -143,7 +145,8 @@ public final class Asm {
         matcher = INSTRUCTION_PATTERN.matcher(code);
         while(matcher.find()) {
             if(matcher.group().startsWith(":")) {
-                labels[Integer.parseInt(matcher.group().substring(1))] = counter;
+                int labelId = Integer.parseInt(matcher.group().substring(1));
+                labels[labelId] = counter;
                 continue;
             }
             int insnOpcode = lookupInstruction(matcher.group());
@@ -156,9 +159,16 @@ public final class Asm {
             for(int argument = 0; argument < arguments; argument++) {
                 if(!matcher.find())
                     throw new RuntimeException("Expected argument " + (argument + 1) + " after " + Ops.OP_NAMES[insnOpcode] + " on line " + getLineNumber(code, code.length()));
-                int valueOpcode = lookupValue(matcher.group());
+                String matcherValue = matcher.group();
+                Matcher markerMatcher = MARKER_PATTERN.matcher(matcherValue);
+                boolean isLabel = false;
+                if((isLabel = markerMatcher.find())) {
+                    counter++;
+                    continue;
+                }
+                int valueOpcode = lookupValue(matcherValue, isLabel);
                 if(valueOpcode < 0)
-                    throw new RuntimeException("Unknown value, " + '\'' + matcher.group() + '\'' + ", on line " + getLineNumber(code, matcher.start(0)));
+                    throw new RuntimeException("Unknown value, " + '\'' + matcher.group() + '\'' + ", on line " + getLineNumber(code, matcher.start(0)));                
                 if(Ops.V_NAMES[valueOpcode].indexOf("%nw%") > -1) {
                     Matcher decimalMatcher = DECIMAL_PATTERN.matcher(matcher.group());
                     if(!decimalMatcher.find())
@@ -182,9 +192,10 @@ public final class Asm {
                 matcher.find();
                 String matcherValue = matcher.group();
                 Matcher markerMatcher = MARKER_PATTERN.matcher(matcherValue);
-                if(markerMatcher.find())
+                boolean isLabel = false;
+                if((isLabel = markerMatcher.find()))
                     matcherValue = markerMatcher.replaceAll("" + labels[Integer.parseInt(markerMatcher.group(1))]);
-                int valueOpcode = lookupValue(matcherValue);               
+                int valueOpcode = lookupValue(matcherValue, isLabel);               
                 if(Ops.V_NAMES[valueOpcode].indexOf("%nw%") > -1) {
                     Matcher decimalMatcher = DECIMAL_PATTERN.matcher(matcherValue);
                     decimalMatcher.find();

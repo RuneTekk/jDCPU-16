@@ -43,7 +43,6 @@ public final class Main {
             if(argument.equals("c") || argument.equals("compile")) {
                 if(args.length - i < 2)
                     throw new RuntimeException("Usage: -c <source file> <destination file>...");
-                System.out.println("Compiling " + args[i] + " to " + args[i + 1] + "...");
                 InputStream is = null;               
                 try {
                     is = new FileInputStream(args[i++]);
@@ -60,7 +59,7 @@ public final class Main {
                 OutputStream os = null;
                 try {
                     os = new FileOutputStream(args[i++]);
-                    for(int insn : insns) {
+                    for(int insn : insns) {                     
                         os.write(insn >> 8);
                         os.write(insn);
                     }
@@ -70,23 +69,55 @@ public final class Main {
                     throw new RuntimeException("Exception thrown while writing the output file: \n\t" + ex);
                 }
                 System.out.println("Compiled " + insns.length + " instructions to " + args[i - 1] + "...");
-            } else if(argument.equals("e") || argument.equals("execute")) {
-                if(args.length - i < 1)
-                    throw new RuntimeException("Usage: -e <source file>...");
-                System.out.println("Executing " + args[i] + "...");
+            } else if(argument.equals("d") || argument.equals("disasm")) {
+                if(args.length - i < 2)
+                    throw new RuntimeException("Usage: -d <source file> <destination file>...");
                 InputStream is = null;               
                 try {
                     is = new FileInputStream(args[i++]);
                 } catch(Exception ex) {
                     throw new RuntimeException("Exception thrown while opening source stream: \n\t" + ex);
                 }
+                Dasm asm = new Dasm();
+                String insns = null;
+                try {
+                    insns = asm.disassemble(is);
+                } catch(Exception ex) {
+                    throw new RuntimeException("Exception thrown while disassembling: \n\t" + ex);
+                }
+                OutputStream os = null;
+                try {
+                    os = new FileOutputStream(args[i++]);
+                    os.write(insns.getBytes());
+                    os.flush();
+                    os.close();
+                } catch(Exception ex) {
+                    throw new RuntimeException("Exception thrown while writing the output file: \n\t" + ex);
+                }
+                System.out.println("Disassembled instructions to " + args[i - 1] + "...");
+            } else if(argument.equals("e") || argument.equals("execute")) {
+                if(args.length - i < 1)
+                    throw new RuntimeException("Usage: -e <source file>...");
+                InputStream is = null;               
+                try {
+                    is = new FileInputStream(args[i++]);
+                } catch(Exception ex) {
+                    throw new RuntimeException("Exception thrown while opening source stream: \n\t" + ex);
+                }
+                boolean debug = false;
+                if(args[i].startsWith("--"))
+                    if(args[i++].equals("--d") || args[i - 1].equals("--debug"))
+                        debug = true;
+                    else 
+                        throw new RuntimeException("Expected --d or --debug flag...");                 
                 Cpu cpu = new Cpu();
+                cpu.debug = debug;
                 try {
                     cpu.execute(is);
                 } catch(Exception ex) {
-                    throw new RuntimeException("Exception thrown while executing: \n\t" + ex);
+                    throw new RuntimeException("Exception thrown while executing: \n\t" + ex);                    
                 }
-                System.out.println(args[i - 1] + " took " + cpu.r[Cpu.C].v + " cycles...");
+                System.out.println("The program took a total of " + cpu.r[Cpu.C].v + " cycles...");
             } else
                 throw new RuntimeException("Unknown command argument: " + argument);
         }

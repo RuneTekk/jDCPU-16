@@ -1,6 +1,5 @@
 package org.sini;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import static org.sini.Ops.*;
@@ -57,6 +56,11 @@ public final class Cpu {
     Cell[] r;
     
     /**
+     * The {@link Cpu} will print out debugging information.
+     */
+    boolean debug;
+    
+    /**
      * Initializes this {@link Cpu}.
      */
     public void initialize() {
@@ -95,7 +99,6 @@ public final class Cpu {
         while(true) {
             int op = m[r[PC].v++].v;
             if((op & 0xF) != 0) {
-
                 Object a = getValue(op >>> 4 & 0x3F, true);                                
                 Object b = getValue(op >>> 10 & 0x3F, true);
                 if(!(a instanceof Cell)) {
