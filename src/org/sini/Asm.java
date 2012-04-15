@@ -84,7 +84,7 @@ public final class Asm {
         Matcher matcher = DECIMAL_PATTERN.matcher(str);
         if(matcher.find()) {
             int value = Integer.parseInt(matcher.group());
-            if(value >= 0x0 && value <= 0x1F && !isLabel)
+            if(str.matches("^" + DECIMAL_PATTERN.pattern() + "$") && value >= 0x0 && value <= 0x1F && !isLabel)
                 return value + 0x20;
             else
                 str = matcher.replaceAll("%nw%");

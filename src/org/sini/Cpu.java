@@ -175,7 +175,7 @@ public final class Cpu {
 
                     case OP_SHL:
                         if(!bothLiteral) {
-                            int value = ((Cell) a).v >> bValue;
+                            int value = ((Cell) a).v << bValue;
                             r[O].v = value >>> 16;
                             ((Cell) a).v = value & 0xFFFF;
                         }
@@ -184,7 +184,7 @@ public final class Cpu {
 
                     case OP_SHR:
                         if(!bothLiteral) {
-                            ((Cell) a).v = ((Cell) a).v << bValue & 0xFFFF;
+                            ((Cell) a).v = ((Cell) a).v >>> bValue;
                             r[O].v = ((Cell) a).v << 16 >>> bValue & 0xFFFF;
                         }
                         r[C].v += 2;
